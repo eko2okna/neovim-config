@@ -19,33 +19,35 @@ if not vim.loop.fs_stat(lazypath) then
     local nvim_tree = require("nvim-tree")
     local tree_api = require("nvim-tree.api")
 
+    -- nvim-tree: left-side explorer, keep it open; default keymaps enabled
     nvim_tree.setup({
       view = { side = "left", width = 25 },
       update_focused_file = { enable = true },
       actions = {
         open_file = {
-          quit_on_open = false, -- do not close after opening a file
+          quit_on_open = false, -- do not close the tree after opening a file
         },
       },
+      -- No custom keymaps: rely on defaults (Enter to open, 'a' to add, etc.)
     })
 
-    -- automatic tree open after Neovim start
+    -- Automatically open the tree when Neovim starts
     vim.api.nvim_create_autocmd("VimEnter", {
       callback = function()
       tree_api.tree.open()
       end
     })
 
-    -- Ctrl+n: toggle focus between tree and last buffer
+    -- Ctrl+n: toggle focus between tree and the last active window
     local focus_on_tree = false
     vim.keymap.set("n", "<C-n>", function()
     local view = tree_api.tree.get_node_under_cursor() or nil
     if focus_on_tree then
-      -- go back to previous buffer
+      -- go back to previous window
       vim.cmd('wincmd p')
       focus_on_tree = false
       else
-        -- focus on tree
+        -- move focus to the tree
         tree_api.tree.focus()
         focus_on_tree = true
         end
@@ -97,7 +99,48 @@ if not vim.loop.fs_stat(lazypath) then
     })
     end
   },
+
+  -- LSP & completion ecosystem (installed via Mason; configured in lua/lsp.lua)
+  {
+    "williamboman/mason.nvim",
+    build = ":MasonUpdate",
+    config = function()
+      require("mason").setup()
+    end
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = { "williamboman/mason.nvim" },
+  },
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = { "williamboman/mason-lspconfig.nvim" },
+  },
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+      "saadparwaiz1/cmp_luasnip",
+      "L3MON4D3/LuaSnip"
+    },
+  },
+  {
+    "nvimtools/none-ls.nvim",
+    dependencies = {
+      "williamboman/mason.nvim",
+      "jay-babu/mason-null-ls.nvim"
+    },
+  },
+  {
+    "jay-babu/mason-null-ls.nvim",
+    dependencies = { "nvimtools/none-ls.nvim", "williamboman/mason.nvim" },
+  },
   })
+
+  -- Load LSP/Completion configuration (defined in lua/lsp.lua)
+  pcall(require, "lsp")
 
   -- Basic settings
   vim.opt.number = true
